@@ -24,21 +24,26 @@ declare var UIApplication: any
 declare var UIUserNotificationSettings: any
 declare var UIUserNotificationType: any
 declare var UIBackgroundRefreshStatus: any
+declare var AVAudioSession: any
+declare var AVAudioSessionRecordPermission: any
+declare var EKAuthorizationStatus: any
+declare var EKEventStore: any
+declare var EKEntityTypeEvent: any
 
 
 
-class LocationManager extends CLLocationManagerDelegate {
+// class LocationManager extends CLLocationManagerDelegate {
 
-	constructor() { }
+// 	constructor() { }
 
-	private locationManagerDidChangeAuthorizationStatus(manager: any, status: number): void {
-		global.tnsconsole.log('manager', manager)
-		global.tnsconsole.dump('manager', manager)
-		global.tnsconsole.log('status', status)
-		global.tnsconsole.dump('status', status)
-	}
+// 	private locationManagerDidChangeAuthorizationStatus(manager: any, status: number): void {
+// 		global.tnsconsole.log('manager', manager)
+// 		global.tnsconsole.dump('manager', manager)
+// 		global.tnsconsole.log('status', status)
+// 		global.tnsconsole.dump('status', status)
+// 	}
 
-}
+// }
 
 class Permissions2 {
 
@@ -46,7 +51,8 @@ class Permissions2 {
 	public status: any = {}
 	private addressBook: any = ABAddressBookCreateWithOptions(null, null)
 	private osVersion: number = parseFloat(platform.device.osVersion) // parses the first decimal place
-	private locationManager: any
+	private eventStore: any = null
+	// private locationManager: any
 
 	constructor() {
 
@@ -55,10 +61,12 @@ class Permissions2 {
 		this.mapStatus('Camera', AVAuthorizationStatus)
 		this.mapStatus('Pictures', PHAuthorizationStatus)
 		this.mapStatus('Location', CLAuthorizationStatus)
+		this.mapStatus('Microphone', AVAudioSessionRecordPermission)
+		this.mapStatus('Calendar', EKAuthorizationStatus)
 
-		this.locationManager = new LocationManager()
-		global.tnsconsole.log('this.locationManager', this.locationManager)
-		global.tnsconsole.dump('this.locationManager', this.locationManager)
+		// this.locationManager = new LocationManager()
+		// global.tnsconsole.log('this.locationManager', this.locationManager)
+		// global.tnsconsole.dump('this.locationManager', this.locationManager)
 
 	}
 
@@ -68,7 +76,7 @@ class Permissions2 {
 
 	private mapStatus(key: string, obj: any): any {
 		this.status[key] = {}
-		let statuses = ['NotDetermined', 'Restricted', 'Denied', 'Authorized', 'Available', 'AuthorizedAlways', 'AuthorizedWhenInUse']
+		let statuses = ['NotDetermined', 'Restricted', 'Denied', 'Authorized', 'Available', 'AuthorizedAlways', 'AuthorizedWhenInUse', 'Undetermined', 'Granted']
 		let i, len = statuses.length
 		for (i = 0; i < len; i++) {
 			let index = find(obj, function(vv, ii) {
@@ -121,7 +129,7 @@ class Permissions2 {
 	}
 
 	public requestCameraAuthorization(): Promise<any> {
-		return new Promise(function(resolve, reject) {
+		return new Promise(function(resolve) {
 			AVCaptureDevice.requestAccessForMediaTypeCompletionHandler(AVMediaTypeVideo, resolve)
 		})
 	}
@@ -139,7 +147,7 @@ class Permissions2 {
 	}
 
 	public requestPicturesAuthorization(): Promise<any> {
-		return new Promise((resolve, reject) => {
+		return new Promise((resolve) => {
 			PHPhotoLibrary.requestAuthorization((status) => {
 				return resolve(status == this.status['Pictures']['Authorized'])
 			})
@@ -227,10 +235,6 @@ class Permissions2 {
 		return this.getBackgroundRefreshStatus() == UIBackgroundRefreshStatus['UIBackgroundRefreshStatusAvailable']
 	}
 
-
-
-
-
 	/*================================
 	=            LOCATION            =
 	================================*/
@@ -257,15 +261,13 @@ class Permissions2 {
 
 	public requestLocationAuthorization(type: string): Promise<any> {
 
-		global.tnsconsole.log('this.locationManager', this.locationManager)
-		global.tnsconsole.dump('this.locationManager', this.locationManager)
+		// global.tnsconsole.log('this.locationManager', this.locationManager)
+		// global.tnsconsole.dump('this.locationManager', this.locationManager)
 
 		// this.locationManager.requestWhenInUseAuthorization()
 		return Promise.resolve(true)
 
 	}
-
-
 
 	/*================================
 	=            CONTACTS            =
@@ -282,6 +284,59 @@ class Permissions2 {
 	public requestContactsAuthorization(): Promise<any> {
 		return new Promise((resolve, reject) => {
 			ABAddressBookRequestAccessWithCompletion(this.addressBook, function(status, error) {
+				if (error) {
+					return reject(new Error(error))
+				} else {
+					return resolve(status)
+				}
+			})
+		})
+	}
+
+
+
+	/*==================================
+	=            MICROPHONE            =
+	==================================*/
+
+	public getMicrophoneAuthorizationStatus(): number {
+		let session = AVAudioSession.sharedInstance()
+		return session.recordPermission()
+	}
+
+	public isMicrophoneAuthorized(): boolean {
+		return this.getMicrophoneAuthorizationStatus() == this.status['Microphone']['Granted']
+	}
+
+	public requestMicrophoneAuthorization(): Promise<any> {
+		let session = AVAudioSession.sharedInstance()
+		return new Promise(function(resolve) {
+			session.requestRecordPermission(function(status) {
+				return resolve(status)
+			})
+		})
+	}
+
+
+
+	/*================================
+	=            CALENDAR            =
+	================================*/
+
+	public getCalendarAuthorizationStatus(): number {
+		return EKEventStore.authorizationStatusForEntityType(EKEntityTypeEvent)
+	}
+
+	public isCalendarAuthorized(): boolean {
+		return this.getCalendarAuthorizationStatus() == this.status['Calendar']['Authorized']
+	}
+
+	public requestCalendarAuthorization(): Promise<any> {
+		if (this.eventStore == null) {
+			this.eventStore = new EKEventStore()
+		}
+		return new Promise((resolve, reject) => {
+			this.eventStore.requestAccessToEntityTypeCompletion(EKEntityTypeEvent, function(status, error) {
 				if (error) {
 					return reject(new Error(error))
 				} else {
