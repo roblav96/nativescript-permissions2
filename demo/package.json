@@ -9,6 +9,8 @@
     }
   },
   "dependencies": {
+    "ansicolors": "*",
+    "ansistyles": "*",
     "nativescript-yourplugin": "file:..",
     "tns-core-modules": "^2.2.0"
   },

@@ -1,14 +1,16 @@
 import {Observable} from 'data/observable';
-import {YourPlugin} from 'nativescript-yourplugin';
+import {Permissions2} from './modules/permissions2'
+// var Permissions2 = require('./modules/permissions2')
 
 export class HelloWorldModel extends Observable {
-  public message: string;
-  private yourPlugin: YourPlugin;
+	public message: string;
 
-  constructor() {
-    super();
+	constructor() {
+		super();
 
-    this.yourPlugin = new YourPlugin();
-    this.message = this.yourPlugin.message;
-  }
+		console.dump(Permissions2);
+		new Permissions2()
+
+		this.message = "haiii"
+	}
 }

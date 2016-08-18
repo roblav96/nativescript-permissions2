@@ -1,0 +1,15 @@
+{
+	"compilerOptions": {
+		"target": "es5",
+		"module": "commonjs",
+		"removeComments": true,
+		"experimentalDecorators": true,
+		"noEmitHelpers": true,
+		"declaration": true
+	},
+	"files": [
+		"permission2.ts",
+	],
+	"compileOnSave": false
+}
+
