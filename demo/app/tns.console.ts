@@ -5,7 +5,7 @@ var styles = require('ansistyles')
 
 
 
-class tnsConsole {
+class TnsConsole {
 
 	private logit(type: string, args: any[]): void {
 		let errs = []
@@ -40,7 +40,7 @@ class tnsConsole {
 			for (i = 0; i < len; i++) {
 				console.error(errs[i])
 				console.dump(errs[i])
-				this.dumpit(errs[i])
+				this.dumpit('ERROR', errs[i])
 			}
 		}
 	}
@@ -78,6 +78,6 @@ class tnsConsole {
 
 }
 
-global.tnsconsole = new tnsConsole()
+global.tnsconsole = new TnsConsole()
 
 

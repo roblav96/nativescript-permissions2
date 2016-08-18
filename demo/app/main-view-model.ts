@@ -10,18 +10,13 @@ export class HelloWorldModel extends Observable {
 		super();
 
 		global.tnsconsole.log('Permissions2', Permissions2)
+		global.tnsconsole.log('Permissions2.isRemoteNotificationsEnabled()', Permissions2.isRemoteNotificationsEnabled())
 
-		Permissions2.requestContactsAuthorization().then(function(status) {
-			global.tnsconsole.log('status', status)
-		}).catch(function(err) {
-			global.tnsconsole.error('err', err)
-		})
-
-		// global.tnsconsole.log('Permissions2.isContactsAuthorized()', Permissions2.isContactsAuthorized())
-		// console.dump(Permissions2);
-
-		// let yourPlugin = new YourPlugin()
-		// console.dir(yourPlugin);
+		// Permissions2.requestCameraRollAuthorization().then(function(status) {
+		// 	global.tnsconsole.log('status', status)
+		// }).catch(function(err) {
+		// 	global.tnsconsole.error('err', err)
+		// })
 
 		this.message = "haiii"
 	}
