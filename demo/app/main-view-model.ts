@@ -10,7 +10,6 @@ export class HelloWorldModel extends Observable {
 		super();
 
 		global.tnsconsole.log('Permissions2', Permissions2)
-		global.tnsconsole.log('Permissions2.isRemoteNotificationsEnabled()', Permissions2.isRemoteNotificationsEnabled())
 
 		// Permissions2.requestCameraRollAuthorization().then(function(status) {
 		// 	global.tnsconsole.log('status', status)

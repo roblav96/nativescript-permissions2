@@ -2,6 +2,7 @@
 
 import * as platform from 'platform'
 import {openUrl} from 'utils/utils'
+import {find, forEach, isString} from 'lodash'
 declare var ABAddressBookGetAuthorizationStatus: any
 declare var ABAuthorizationStatus: any
 declare var ABAddressBookRequestAccessWithCompletion: any
@@ -18,6 +19,7 @@ declare var PHPhotoLibrary: any
 declare var UIApplication: any
 declare var UIUserNotificationSettings: any
 declare var UIUserNotificationType: any
+declare var UIBackgroundRefreshStatus: any
 
 
 
@@ -28,6 +30,8 @@ class Permissions2 {
 	public RESTRICTED: number = 1
 	public DENIED: number = 2
 	public AUTHORIZED: number = 3
+	public status: any = {}
+	// public BackgroundRefreshStatuses: any = {}
 
 	private adressBook: any = ABAddressBookCreateWithOptions(null, null)
 	private osVersion: number = parseFloat(platform.device.osVersion) // parses the first decimal place
@@ -59,6 +63,37 @@ class Permissions2 {
 		// global.tnsconsole.log('UIApplication.sharedApplication().respondsToSelector(registerUserNotificationSettings:)', UIApplication.sharedApplication().respondsToSelector('registerUserNotificationSettings:'))
 		// global.tnsconsole.dump('UIApplication.sharedApplication().respondsToSelector(registerUserNotificationSettings:)', UIApplication.sharedApplication().respondsToSelector('registerUserNotificationSettings:'))
 
+		// global.tnsconsole.dump('UIBackgroundRefreshStatus', UIBackgroundRefreshStatus)
+		// global.tnsconsole.dump('AVAuthorizationStatus', AVAuthorizationStatus)
+		// global.tnsconsole.dump('ABAuthorizationStatus', ABAuthorizationStatus)
+
+		this.mapStatus('BackgroundRefresh', UIBackgroundRefreshStatus)
+		this.mapStatus('Contacts', ABAuthorizationStatus)
+		this.mapStatus('Camera', AVAuthorizationStatus)
+		global.tnsconsole.dump('this.status', this.status)
+
+	}
+
+	/*===============================
+	=            HELPERS            =
+	===============================*/
+
+	private mapStatus(key: string, obj: any): any {
+		this.status[key] = {}
+		let statuses = ['NotDetermined', 'Restricted', 'Denied', 'Authorized', 'Available',]
+		let i, len = statuses.length
+		for (i = 0; i < len; i++) {
+			let index = find(obj, function(vv, ii) {
+				if (isString(vv) && vv.indexOf(statuses[i]) != -1) {
+					return true
+				}
+			})
+			if (index) {
+				this.status[key][statuses[i]] = obj[index]
+			} else {
+				this.status[key][statuses[i]] = -1
+			}
+		}
 	}
 
 	/*=================================
@@ -115,10 +150,6 @@ class Permissions2 {
 		})
 	}
 
-
-
-
-
 	/*=====================================
 	=            NOTIFICATIONS            =
 	=====================================*/
@@ -148,14 +179,57 @@ class Permissions2 {
 			return sharedApp.enabledRemoteNotificationTypes != UIUserNotificationType['UIUserNotificationTypeNone']
 		}
 	}
-	
+
+	/*=====  THIS NEEDS TESTING  ======*/
 	public getRemoteNotificationTypes(): any {
-		
+		let enables: any = []
+		let sharedApp = UIApplication.sharedApplication()
+		if (this.osVersion >= 8) {
+			// iOS8+
+			let types: number = sharedApp.currentUserNotificationSettings().types
+			if (types == UIUserNotificationType['UIUserNotificationTypeNone']) {
+				enables.push('none')
+			}
+			if (types & UIUserNotificationType['UIUserNotificationTypeAlert']) {
+				enables.push('alert')
+			}
+			if (types & UIUserNotificationType['UIUserNotificationTypeBadge']) {
+				enables.push('badge')
+			}
+			if (types & UIUserNotificationType['UIUserNotificationTypeSound']) {
+				enables.push('sound')
+			}
+		} else {
+			// iOS7 and below
+			let types: number = sharedApp.enabledRemoteNotificationTypes
+			if (types == UIUserNotificationType['UIUserNotificationTypeNone']) {
+				enables.push('none')
+			}
+			if (types & UIUserNotificationType['UIUserNotificationTypeAlert']) {
+				enables.push('alert')
+			}
+			if (types & UIUserNotificationType['UIUserNotificationTypeBadge']) {
+				enables.push('badge')
+			}
+			if (types & UIUserNotificationType['UIUserNotificationTypeSound']) {
+				enables.push('sound')
+			}
+		}
+		return enables
 	}
 
+	/*==========================================
+	=            BACKGROUND REFRESH            =
+	==========================================*/
 
+	public getBackgroundRefreshStatus(): number {
+		let sharedApp = UIApplication.sharedApplication()
+		return sharedApp.backgroundRefreshStatus
+	}
 
-
+	public isBackgroundRefreshAuthorized(): boolean {
+		return this.getBackgroundRefreshStatus() == UIBackgroundRefreshStatus['UIBackgroundRefreshStatusAvailable']
+	}
 
 	/*================================
 	=            LOCATION            =
