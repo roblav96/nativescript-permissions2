@@ -2,16 +2,20 @@
 
 import * as platform from 'platform'
 import {openUrl} from 'utils/utils'
-import {find, forEach, isString} from 'lodash'
+import {find, isString, isFinite} from 'lodash'
 declare var ABAddressBookGetAuthorizationStatus: any
 declare var ABAuthorizationStatus: any
 declare var ABAddressBookRequestAccessWithCompletion: any
 declare var ABAddressBookCreateWithOptions: any
 declare var UIApplicationOpenSettingsURLString: any
 declare var CLLocationManager: any
+declare var CLAuthorizationStatus: any
+declare var CLLocationManagerDelegate: any
+declare var locationManagerDidUpdateToLocationFromLocation: any
 declare var UIImagePickerController: any
 declare var UIImagePickerControllerSourceType: any
 declare var UIImagePickerControllerCameraDevice: any
+declare var PHAuthorizationStatus: any
 declare var AVAuthorizationStatus: any
 declare var AVCaptureDevice: any
 declare var AVMediaTypeVideo: any
@@ -23,54 +27,38 @@ declare var UIBackgroundRefreshStatus: any
 
 
 
+class LocationManager extends CLLocationManagerDelegate {
+
+	constructor() { }
+
+	private locationManagerDidChangeAuthorizationStatus(manager: any, status: number): void {
+		global.tnsconsole.log('manager', manager)
+		global.tnsconsole.dump('manager', manager)
+		global.tnsconsole.log('status', status)
+		global.tnsconsole.dump('status', status)
+	}
+
+}
+
 class Permissions2 {
 
 	// get these numbers from ABAuthorizationStatus, AVAuthorizationStatus, etc.
-	public NOTDETERMINED: number = 0
-	public RESTRICTED: number = 1
-	public DENIED: number = 2
-	public AUTHORIZED: number = 3
 	public status: any = {}
-	// public BackgroundRefreshStatuses: any = {}
-
-	private adressBook: any = ABAddressBookCreateWithOptions(null, null)
+	private addressBook: any = ABAddressBookCreateWithOptions(null, null)
 	private osVersion: number = parseFloat(platform.device.osVersion) // parses the first decimal place
+	private locationManager: any
 
 	constructor() {
-		// console.log('IOS IOS IOS IOS');
-		// console.dir(ABAddressBookGetAuthorizationStatus);
-		// global.tnsconsole.log('ABAddressBookGetAuthorizationStatus()', ABAddressBookGetAuthorizationStatus())
-		// global.tnsconsole.dump('ABAddressBookRequestAccessWithCompletion', ABAddressBookRequestAccessWithCompletion)
-		// ABAddressBookRequestAccessWithCompletion()
-		// let idk = ABAddressBookRequestAccessWithCompletion()
-		// global.tnsconsole.log('idk', idk)
-		// global.tnsconsole.dump('idk', idk)
-
-		// ABAddressBookRequestAccessWithCompletion(this.adressBook, function(status, error) {
-		// 	global.tnsconsole.log('status', status)
-		// 	global.tnsconsole.dump('status', status)
-		// 	global.tnsconsole.log('error', error)
-		// 	global.tnsconsole.dump('error', error)
-		// })
-
-		// global.tnsconsole.log('platform.device', platform.device)
-		// global.tnsconsole.dump('platform.device', platform.device)
-		// global.tnsconsole.log('typeof platform.device.osVersion', typeof platform.device.osVersion)
-
-		// global.tnsconsole.log('UIUserNotificationSettings', UIUserNotificationSettings)
-		// global.tnsconsole.dump('UIUserNotificationSettings', UIUserNotificationSettings)
-
-		// global.tnsconsole.log('UIApplication.sharedApplication().respondsToSelector(registerUserNotificationSettings:)', UIApplication.sharedApplication().respondsToSelector('registerUserNotificationSettings:'))
-		// global.tnsconsole.dump('UIApplication.sharedApplication().respondsToSelector(registerUserNotificationSettings:)', UIApplication.sharedApplication().respondsToSelector('registerUserNotificationSettings:'))
-
-		// global.tnsconsole.dump('UIBackgroundRefreshStatus', UIBackgroundRefreshStatus)
-		// global.tnsconsole.dump('AVAuthorizationStatus', AVAuthorizationStatus)
-		// global.tnsconsole.dump('ABAuthorizationStatus', ABAuthorizationStatus)
 
 		this.mapStatus('BackgroundRefresh', UIBackgroundRefreshStatus)
 		this.mapStatus('Contacts', ABAuthorizationStatus)
 		this.mapStatus('Camera', AVAuthorizationStatus)
-		global.tnsconsole.dump('this.status', this.status)
+		this.mapStatus('Pictures', PHAuthorizationStatus)
+		this.mapStatus('Location', CLAuthorizationStatus)
+
+		this.locationManager = new LocationManager()
+		global.tnsconsole.log('this.locationManager', this.locationManager)
+		global.tnsconsole.dump('this.locationManager', this.locationManager)
 
 	}
 
@@ -80,16 +68,16 @@ class Permissions2 {
 
 	private mapStatus(key: string, obj: any): any {
 		this.status[key] = {}
-		let statuses = ['NotDetermined', 'Restricted', 'Denied', 'Authorized', 'Available',]
+		let statuses = ['NotDetermined', 'Restricted', 'Denied', 'Authorized', 'Available', 'AuthorizedAlways', 'AuthorizedWhenInUse']
 		let i, len = statuses.length
 		for (i = 0; i < len; i++) {
 			let index = find(obj, function(vv, ii) {
-				if (isString(vv) && vv.indexOf(statuses[i]) != -1) {
+				if (isString(ii) && ii.indexOf(statuses[i]) != -1) {
 					return true
 				}
 			})
-			if (index) {
-				this.status[key][statuses[i]] = obj[index]
+			if (isFinite(index)) {
+				this.status[key][statuses[i]] = obj[obj[index]]
 			} else {
 				this.status[key][statuses[i]] = -1
 			}
@@ -125,7 +113,11 @@ class Permissions2 {
 	}
 
 	public isCameraAuthorized(): boolean {
-		return this.getCameraAuthorizationStatus() == this.AUTHORIZED
+		return this.getCameraAuthorizationStatus() == this.status['Camera']['Authorized']
+	}
+
+	public isCameraAvailable(): boolean {
+		return this.isCameraPresent() && this.isCameraAuthorized()
 	}
 
 	public requestCameraAuthorization(): Promise<any> {
@@ -134,18 +126,22 @@ class Permissions2 {
 		})
 	}
 
-	public getCameraRollAuthorizationStatus(): number {
+	/*================================
+	=            PICTURES            =
+	================================*/
+
+	public getPicturesAuthorizationStatus(): number {
 		return PHPhotoLibrary.authorizationStatus()
 	}
 
-	public isCameraRollAuthorized(): boolean {
-		return this.getCameraRollAuthorizationStatus() == this.AUTHORIZED
+	public isPicturesAuthorized(): boolean {
+		return this.getPicturesAuthorizationStatus() == this.status['Pictures']['Authorized']
 	}
 
-	public requestCameraRollAuthorization(): Promise<any> {
+	public requestPicturesAuthorization(): Promise<any> {
 		return new Promise((resolve, reject) => {
 			PHPhotoLibrary.requestAuthorization((status) => {
-				return resolve(status == this.AUTHORIZED)
+				return resolve(status == this.status['Pictures']['Authorized'])
 			})
 		})
 	}
@@ -190,7 +186,7 @@ class Permissions2 {
 			if (types == UIUserNotificationType['UIUserNotificationTypeNone']) {
 				enables.push('none')
 			}
-			if (types & UIUserNotificationType['UIUserNotificationTypeAlert']) {
+			if (types & UIUserNotificationType['UIUserNotificationTypeAlert']) { // bitwise &
 				enables.push('alert')
 			}
 			if (types & UIUserNotificationType['UIUserNotificationTypeBadge']) {
@@ -231,13 +227,45 @@ class Permissions2 {
 		return this.getBackgroundRefreshStatus() == UIBackgroundRefreshStatus['UIBackgroundRefreshStatusAvailable']
 	}
 
+
+
+
+
 	/*================================
 	=            LOCATION            =
 	================================*/
 
-	public isLocationPresent(): boolean {
+	public isLocationEnabled(): boolean {
 		return CLLocationManager.locationServicesEnabled()
 	}
+
+	public getLocationAuthorizationStatus(): number {
+		return CLLocationManager.authorizationStatus()
+	}
+
+	public isLocationAuthorized(): boolean {
+		return (
+			this.getLocationAuthorizationStatus() == this.status['Location']['AuthorizedAlways']
+			||
+			this.getLocationAuthorizationStatus() == this.status['Location']['AuthorizedWhenInUse']
+		)
+	}
+
+	public isLocationAvailable(): boolean {
+		return this.isLocationEnabled() && this.isLocationAuthorized()
+	}
+
+	public requestLocationAuthorization(type: string): Promise<any> {
+
+		global.tnsconsole.log('this.locationManager', this.locationManager)
+		global.tnsconsole.dump('this.locationManager', this.locationManager)
+
+		// this.locationManager.requestWhenInUseAuthorization()
+		return Promise.resolve(true)
+
+	}
+
+
 
 	/*================================
 	=            CONTACTS            =
@@ -248,12 +276,12 @@ class Permissions2 {
 	}
 
 	public isContactsAuthorized(): boolean {
-		return this.getContactsAuthorizationStatus() == this.AUTHORIZED
+		return this.getContactsAuthorizationStatus() == this.status['Contacts']['Authorized']
 	}
 
 	public requestContactsAuthorization(): Promise<any> {
 		return new Promise((resolve, reject) => {
-			ABAddressBookRequestAccessWithCompletion(this.adressBook, function(status, error) {
+			ABAddressBookRequestAccessWithCompletion(this.addressBook, function(status, error) {
 				if (error) {
 					return reject(new Error(error))
 				} else {

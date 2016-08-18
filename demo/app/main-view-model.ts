@@ -10,12 +10,13 @@ export class HelloWorldModel extends Observable {
 		super();
 
 		global.tnsconsole.log('Permissions2', Permissions2)
+		// global.tnsconsole.log('Permissions2.getLocationAuthorizationStatus()', Permissions2.getLocationAuthorizationStatus())
 
-		// Permissions2.requestCameraRollAuthorization().then(function(status) {
-		// 	global.tnsconsole.log('status', status)
-		// }).catch(function(err) {
-		// 	global.tnsconsole.error('err', err)
-		// })
+		Permissions2.requestLocationAuthorization('always').then(function(status) {
+			global.tnsconsole.log('status', status)
+		}).catch(function(err) {
+			global.tnsconsole.error('err', err)
+		})
 
 		this.message = "haiii"
 	}
