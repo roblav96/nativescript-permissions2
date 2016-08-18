@@ -9,9 +9,9 @@ export class HelloWorldModel extends Observable {
 	constructor() {
 		super();
 
-		Permissions2
-		// global.tnsconsole.log('Permissions2', Permissions2)
-		// global.tnsconsole.log('Permissions2.getCalendarAuthorizationStatus()', Permissions2.getCalendarAuthorizationStatus())
+		global.tnsconsole.log('Permissions2', Permissions2)
+
+		global.tnsconsole.log('Permissions2.getLocationMode()', Permissions2.getLocationMode())
 
 		// Permissions2.requestCalendarAuthorization().then(function(status) {
 		// 	global.tnsconsole.log('status', status)
