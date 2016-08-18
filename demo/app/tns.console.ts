@@ -8,27 +8,41 @@ var styles = require('ansistyles')
 class tnsConsole {
 
 	private logit(type: string, args: any[]): void {
+		let errs = []
 		let str = '\n'
-		let i, len = args.length
-		for (i = 0; i < len; i++) {
-			let arg // cause args[i] = JSON.stringify(args[i]) would overwrite the original object
-			if (typeof args[i] == 'object') {
-				arg = JSON.stringify(args[i])
-			} else if (i == 1 && typeof args[i] == 'string') {
-				arg = styles.underline(args[i])
-			} else {
-				arg = args[i]
-			}
-			if (i == 0) {
-				str = str + arg
-			} else if (i == len - 1) {
-				str = str + arg
-			} else {
-				str = str + arg + ' > '
+		{
+			let i, len = args.length
+			for (i = 0; i < len; i++) {
+				let arg // cause args[i] = JSON.stringify(args[i]) would overwrite the original object
+				if (typeof args[i] == 'object') {
+					if (args[i] instanceof Error) {
+						errs.push(args[i])
+					}
+					arg = JSON.stringify(args[i])
+				} else if (i == 1 && typeof args[i] == 'string') {
+					arg = styles.underline(args[i])
+				} else {
+					arg = args[i]
+				}
+				if (i == 0) {
+					str = str + arg
+				} else if (i == len - 1) {
+					str = str + arg
+				} else {
+					str = str + arg + ' > '
+				}
 			}
 		}
 		str = str + '\n \n'
 		console[type](str)
+		{
+			let i, len = errs.length
+			for (i = 0; i < len; i++) {
+				console.error(errs[i])
+				console.dump(errs[i])
+				this.dumpit(errs[i])
+			}
+		}
 	}
 
 	public log(...args: any[]): void {

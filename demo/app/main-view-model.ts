@@ -10,6 +10,13 @@ export class HelloWorldModel extends Observable {
 		super();
 
 		global.tnsconsole.log('Permissions2', Permissions2)
+
+		Permissions2.requestContactsAuthorization().then(function(status) {
+			global.tnsconsole.log('status', status)
+		}).catch(function(err) {
+			global.tnsconsole.error('err', err)
+		})
+
 		// global.tnsconsole.log('Permissions2.isContactsAuthorized()', Permissions2.isContactsAuthorized())
 		// console.dump(Permissions2);
 
