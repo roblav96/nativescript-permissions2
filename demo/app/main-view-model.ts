@@ -1,7 +1,7 @@
 import {Observable} from 'data/observable';
 import Permissions2 from './modules/permissions2'
-// var Permissions2 = require('./modules/permissions2')
-// import {YourPlugin} from 'nativescript-yourplugin';
+
+
 
 export class HelloWorldModel extends Observable {
 	public message: string;
@@ -9,15 +9,18 @@ export class HelloWorldModel extends Observable {
 	constructor() {
 		super();
 
-		global.tnsconsole.log('Permissions2', Permissions2)
+		// Permissions2
+		// global.tnsconsole.log('Permissions2', Permissions2)
 
-		global.tnsconsole.log('Permissions2.getLocationMode()', Permissions2.getLocationMode())
+		global.tnsconsole.log('Permissions2.isLocationEnabled()', Permissions2.isLocationEnabled())
 
-		// Permissions2.requestCalendarAuthorization().then(function(status) {
-		// 	global.tnsconsole.log('status', status)
-		// }).catch(function(err) {
-		// 	global.tnsconsole.error('err', err)
-		// })
+		setTimeout(function() {
+			Permissions2.requestLocationAuthorization().then(function(status) {
+				global.tnsconsole.log('status', status)
+			}).catch(function(err) {
+				global.tnsconsole.error('err', err)
+			})
+		}, 1000)
 
 		this.message = "haiii"
 	}

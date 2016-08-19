@@ -10,6 +10,7 @@ declare var ABAddressBookCreateWithOptions: any
 declare var UIApplicationOpenSettingsURLString: any
 declare var CLLocationManager: any
 declare var CLAuthorizationStatus: any
+declare var NSObject: any
 declare var CLLocationManagerDelegate: any
 declare var locationManagerDidUpdateToLocationFromLocation: any
 declare var UIImagePickerController: any
@@ -32,18 +33,32 @@ declare var EKEntityTypeEvent: any
 
 
 
-// class LocationManager extends CLLocationManagerDelegate {
+class LocationListener extends NSObject implements CLLocationManagerDelegate {
 
-// 	constructor() { }
+	public static ObjCProtocols = [CLLocationManagerDelegate]
+	private _resolves: any // something weird is going on here that i cant initialize this with an empty array []
+	private _didSetup: boolean
 
-// 	private locationManagerDidChangeAuthorizationStatus(manager: any, status: number): void {
-// 		global.tnsconsole.log('manager', manager)
-// 		global.tnsconsole.dump('manager', manager)
-// 		global.tnsconsole.log('status', status)
-// 		global.tnsconsole.dump('status', status)
-// 	}
+	private locationManagerDidChangeAuthorizationStatus(manager: any, status: number): void {
+		if (!this._didSetup) {
+			this._didSetup = true
+			return
+		}
+		global.tnsconsole.dump('this._resolves', this._resolves)
+		let i, len = this._resolves.length
+		for (i = 0; i < len; i++) {
+			this._resolves[i](status)
+		}
+	}
 
-// }
+	public setupPromise(resolve: () => void): void {
+		if (this._resolves == undefined) {
+			this._resolves = []
+		}
+		this._resolves.push(resolve)
+	}
+
+}
 
 class Permissions2 {
 
@@ -51,8 +66,10 @@ class Permissions2 {
 	public status: any = {}
 	private addressBook: any = ABAddressBookCreateWithOptions(null, null)
 	private osVersion: number = parseFloat(platform.device.osVersion) // parses the first decimal place
-	private eventStore: any = null
-	// private locationManager: any
+	private _eventStore: any = null
+	private _locationListener: any = null
+	private _locationManager: any = null
+	private _resolves: any = []
 
 	constructor() {
 
@@ -63,10 +80,7 @@ class Permissions2 {
 		this.mapStatus('Location', CLAuthorizationStatus)
 		this.mapStatus('Microphone', AVAudioSessionRecordPermission)
 		this.mapStatus('Calendar', EKAuthorizationStatus)
-
-		// this.locationManager = new LocationManager()
-		// global.tnsconsole.log('this.locationManager', this.locationManager)
-		// global.tnsconsole.dump('this.locationManager', this.locationManager)
+		global.tnsconsole.dump('this.status', this.status)
 
 	}
 
@@ -86,8 +100,9 @@ class Permissions2 {
 			})
 			if (isFinite(index)) {
 				this.status[key][statuses[i]] = obj[obj[index]]
-			} else {
-				this.status[key][statuses[i]] = -1
+				this.status[key][obj[obj[index]]] = statuses[i]
+				// } else {
+				// 	this.status[key][statuses[i]] = -1
 			}
 		}
 	}
@@ -98,6 +113,56 @@ class Permissions2 {
 
 	public switchToSettings(): void {
 		openUrl(UIApplicationOpenSettingsURLString)
+	}
+
+	/*================================
+	=            LOCATION            =
+	================================*/
+
+	public isLocationEnabled(): boolean {
+		return CLLocationManager.locationServicesEnabled()
+	}
+
+	public getLocationAuthorizationStatus(): number {
+		return CLLocationManager.authorizationStatus()
+	}
+
+	public isLocationAuthorized(): boolean {
+		let status: number = this.getLocationAuthorizationStatus()
+		return (
+			status == this.status['Location']['AuthorizedAlways']
+			||
+			status == this.status['Location']['AuthorizedWhenInUse']
+		)
+	}
+
+	public isLocationAvailable(): boolean {
+		return this.isLocationEnabled() && this.isLocationAuthorized()
+	}
+
+	public requestLocationAuthorization(type: string = 'WhenInUse'): Promise<any> {
+		let status: number = this.getLocationAuthorizationStatus()
+		if (status != this.status['Location']['NotDetermined']) {
+			return Promise.resolve(status)
+		}
+
+		if (this._locationListener == null) {
+			this._locationListener = new LocationListener()
+		}
+		if (this._locationManager == null) {
+			this._locationManager = new CLLocationManager()
+			this._locationManager.delegate = this._locationListener
+		}
+
+		if (type == 'WhenInUse') {
+			this._locationManager.requestWhenInUseAuthorization()
+		} else {
+			this._locationManager.requestAlwaysAuthorization()
+		}
+
+		return new Promise((resolve, reject) => {
+			this._locationListener.setupPromise(resolve)
+		})
 	}
 
 	/*==============================
@@ -236,40 +301,6 @@ class Permissions2 {
 	}
 
 	/*================================
-	=            LOCATION            =
-	================================*/
-
-	public isLocationEnabled(): boolean {
-		return CLLocationManager.locationServicesEnabled()
-	}
-
-	public getLocationAuthorizationStatus(): number {
-		return CLLocationManager.authorizationStatus()
-	}
-
-	public isLocationAuthorized(): boolean {
-		return (
-			this.getLocationAuthorizationStatus() == this.status['Location']['AuthorizedAlways']
-			||
-			this.getLocationAuthorizationStatus() == this.status['Location']['AuthorizedWhenInUse']
-		)
-	}
-
-	public isLocationAvailable(): boolean {
-		return this.isLocationEnabled() && this.isLocationAuthorized()
-	}
-
-	public requestLocationAuthorization(type: string): Promise<any> {
-
-		// global.tnsconsole.log('this.locationManager', this.locationManager)
-		// global.tnsconsole.dump('this.locationManager', this.locationManager)
-
-		// this.locationManager.requestWhenInUseAuthorization()
-		return Promise.resolve(true)
-
-	}
-
-	/*================================
 	=            CONTACTS            =
 	================================*/
 
@@ -332,11 +363,11 @@ class Permissions2 {
 	}
 
 	public requestCalendarAuthorization(): Promise<any> {
-		if (this.eventStore == null) {
-			this.eventStore = new EKEventStore()
+		if (this._eventStore == null) {
+			this._eventStore = new EKEventStore()
 		}
 		return new Promise((resolve, reject) => {
-			this.eventStore.requestAccessToEntityTypeCompletion(EKEntityTypeEvent, function(status, error) {
+			this._eventStore.requestAccessToEntityTypeCompletion(EKEntityTypeEvent, function(status, error) {
 				if (error) {
 					return reject(new Error(error))
 				} else {

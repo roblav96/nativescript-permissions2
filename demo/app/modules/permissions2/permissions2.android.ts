@@ -9,11 +9,11 @@ declare let android: any
 class Permissions2 {
 
 	public status: any = {}
-	private osVersion: number = parseFloat(platform.device.osVersion) // parses up to the first decimal place
-	private sdkVersion: number = parseFloat(platform.device.sdkVersion)
+	private _osVersion: number = parseFloat(platform.device.osVersion) // parses up to the first decimal place
+	private _sdkVersion: number = parseFloat(platform.device.sdkVersion)
 
 	constructor() {
-		global.tnsconsole.log('this.sdkVersion', this.sdkVersion)
+		global.tnsconsole.log('this._sdkVersion', this._sdkVersion)
 	}
 
 	/*=================================
@@ -27,6 +27,20 @@ class Permissions2 {
 		application.android.foregroundActivity.startActivity(intent)
 	}
 
+	private _hasPermission(permission: string): boolean {
+		if (!android.support || !android.support.v4 || !android.support.v4.content || !android.support.v4.content.ContextCompat || !android.support.v4.content.ContextCompat.checkSelfPermission) {
+			return true
+		}
+
+		// Interesting, this actually works on API less than 23 and will return false if the manifest permission was forgotten
+		let doesHavePermission: boolean = (
+			android.content.pm.PackageManager.PERMISSION_GRANTED
+			==
+			android.support.v4.content.ContextCompat.checkSelfPermission(application.android.foregroundActivity, android.Manifest.permission[permission])
+		)
+		return doesHavePermission
+	}
+
 	/*================================
 	=            LOCATION            =
 	================================*/
@@ -36,11 +50,13 @@ class Permissions2 {
 	}
 
 	public isGpsLocationAvailable(): boolean {
-
+		let result: boolean = this.isGpsLocationEnabled() && this.isLocationAuthorized()
 	}
 
 	public isGpsLocationEnabled(): boolean {
-
+		let mode: number = this.getLocationMode()
+		let result: boolean = (mode == 3 || mode == 1)
+		return result
 	}
 
 	public isLocationAuthorized(): boolean {
@@ -49,7 +65,7 @@ class Permissions2 {
 
 	public getLocationMode(): number {
 		let mode = 0
-		if (this.sdkVersion >= 19) {
+		if (this._sdkVersion >= 19) {
 			mode = android.provider.Settings.Secure.getInt(
 				application.android.foregroundActivity.getContentResolver(),
 				android.provider.Settings.Secure.LOCATION_MODE
