@@ -16,11 +16,18 @@ export class HelloWorldModel extends Observable {
 
 		setTimeout(function() {
 			Permissions2.requestLocationAuthorization().then(function(status) {
-				global.tnsconsole.log('status', status)
+				global.tnsconsole.log('requestLocationAuthorization', status)
 			}).catch(function(err) {
 				global.tnsconsole.error('err', err)
 			})
 		}, 1000)
+		setTimeout(function() {
+			Permissions2.requestLocationAuthorization().then(function(status) {
+				global.tnsconsole.log('requestLocationAuthorization', status)
+			}).catch(function(err) {
+				global.tnsconsole.error('err', err)
+			})
+		}, 2000)
 
 		this.message = "haiii"
 	}

@@ -40,11 +40,10 @@ class LocationListener extends NSObject implements CLLocationManagerDelegate {
 	private _didSetup: boolean
 
 	private locationManagerDidChangeAuthorizationStatus(manager: any, status: number): void {
-		if (!this._didSetup) {
+		if (!this._didSetup) { // returns status immedietely after new LocationListener()
 			this._didSetup = true
 			return
 		}
-		global.tnsconsole.dump('this._resolves', this._resolves)
 		let i, len = this._resolves.length
 		for (i = 0; i < len; i++) {
 			this._resolves[i](status)
@@ -62,14 +61,12 @@ class LocationListener extends NSObject implements CLLocationManagerDelegate {
 
 class Permissions2 {
 
-	// get these numbers from ABAuthorizationStatus, AVAuthorizationStatus, etc.
 	public status: any = {}
 	private addressBook: any = ABAddressBookCreateWithOptions(null, null)
 	private osVersion: number = parseFloat(platform.device.osVersion) // parses the first decimal place
 	private _eventStore: any = null
 	private _locationListener: any = null
 	private _locationManager: any = null
-	private _resolves: any = []
 
 	constructor() {
 
@@ -80,7 +77,7 @@ class Permissions2 {
 		this.mapStatus('Location', CLAuthorizationStatus)
 		this.mapStatus('Microphone', AVAudioSessionRecordPermission)
 		this.mapStatus('Calendar', EKAuthorizationStatus)
-		global.tnsconsole.dump('this.status', this.status)
+		// global.tnsconsole.dump('this.status', this.status)
 
 	}
 
@@ -101,8 +98,6 @@ class Permissions2 {
 			if (isFinite(index)) {
 				this.status[key][statuses[i]] = obj[obj[index]]
 				this.status[key][obj[obj[index]]] = statuses[i]
-				// } else {
-				// 	this.status[key][statuses[i]] = -1
 			}
 		}
 	}
@@ -324,8 +319,6 @@ class Permissions2 {
 		})
 	}
 
-
-
 	/*==================================
 	=            MICROPHONE            =
 	==================================*/
@@ -347,8 +340,6 @@ class Permissions2 {
 			})
 		})
 	}
-
-
 
 	/*================================
 	=            CALENDAR            =
