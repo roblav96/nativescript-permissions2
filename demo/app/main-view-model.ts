@@ -12,7 +12,9 @@ export class HelloWorldModel extends Observable {
 		// Permissions2
 		// global.tnsconsole.log('Permissions2', Permissions2)
 
-		global.tnsconsole.log('Permissions2.getLocationAuthorizationStatus()', Permissions2.getLocationAuthorizationStatus())
+		setTimeout(function() {
+			global.tnsconsole.log('Permissions2.getLocationAuthorizationStatus()', Permissions2.getLocationAuthorizationStatus())
+		}, 1000)
 
 		// setTimeout(function() {
 		// 	Permissions2.requestLocationAuthorization().then(function(status) {

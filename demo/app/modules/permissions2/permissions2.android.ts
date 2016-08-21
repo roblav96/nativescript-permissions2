@@ -47,22 +47,29 @@ class Permissions2 {
 	private _shouldShowRequestPermissionRationale(permission: string): boolean {
 		global.tnsconsole.log('_shouldShowRequestPermissionRationale > permission', permission)
 
-		// global.tnsconsole.dump('android.support.v4.app.ActivityCompat', android.support.v4.app.ActivityCompat)
+		let should: boolean
+		try {
+			// // global.tnsconsole.dump('android.support.v4.app.ActivityCompat', android.support.v4.app.ActivityCompat)
 
-		// let method = android.app.Activity.class.getMethod(
-		// 	"shouldShowRequestPermissionRationale",
-		
-		// 	android.app.Activity.class,
-		// 	java.lang.String.class
-		// )
-		// global.tnsconsole.dump('method', method)
-		// let bool = method.invoke(null, application.android.foregroundActivity, permission)
-		// global.tnsconsole.dump('bool', bool)
+			// let method = android.app.Activity.class.getMethod(
+			// 	// let method = android.support.v4.app.ActivityCompat.class.getMethod(
+			// 	"shouldShowRequestPermissionRationale",
+			// 	android.app.Activity.class,
+			// 	java.lang.String.class
+			// )
+			// global.tnsconsole.dump('method', method)
+			// // let bool = method.invoke(null, application.android.foregroundActivity, permission)
+			// // global.tnsconsole.dump('bool', bool)
 
-		let should: boolean = android.support.v4.app.ActivityCompat.shouldShowRequestPermissionRationale(
-			application.android.foregroundActivity,
-			android.Manifest.permission[permission]
-		)
+			should = android.support.v4.app.ActivityCompat.shouldShowRequestPermissionRationale(
+				application.android.foregroundActivity,
+				android.Manifest.permission[permission]
+			)
+		} catch (err) {
+			global.tnsconsole.error('err', err)
+			should = false
+		}
+
 		return should
 	}
 
