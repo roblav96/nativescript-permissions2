@@ -3,6 +3,7 @@
 import * as platform from 'platform'
 import * as application from 'application'
 declare let android: any
+declare let java: any
 
 
 
@@ -13,19 +14,17 @@ class Permissions2 {
 	private _sdkVersion: number = parseFloat(platform.device.sdkVersion)
 
 	constructor() {
+		global.tnsconsole.log('this._osVersion', this._osVersion)
 		global.tnsconsole.log('this._sdkVersion', this._sdkVersion)
+
+		this.status = {
+			1: 'STATUS_NOT_REQUESTED_OR_DENIED_ALWAYS',
+		}
 	}
 
-	/*=================================
-	=            UTILITIES            =
-	=================================*/
-
-	public switchToSettings(): void {
-		let intent = new android.content.Intent(android.provider.Settings['ACTION_APPLICATION_DETAILS_SETTINGS'])
-		let uri = android.net.Uri.fromParts('package', application.android.foregroundActivity.getPackageName(), null)
-		intent.setData(uri)
-		application.android.foregroundActivity.startActivity(intent)
-	}
+	/*===============================
+	=            HELPERS            =
+	===============================*/
 
 	private _hasPermission(permission: string): boolean {
 		if (!android.support || !android.support.v4 || !android.support.v4.content || !android.support.v4.content.ContextCompat || !android.support.v4.content.ContextCompat.checkSelfPermission) {
@@ -41,27 +40,51 @@ class Permissions2 {
 		return doesHavePermission
 	}
 
+	private _getPermissionAuthorizationStatus(permission: string): boolean {
+
+	}
+
+	private _shouldShowRequestPermissionRationale(permission: string): boolean {
+		global.tnsconsole.log('_shouldShowRequestPermissionRationale > permission', permission)
+
+		// global.tnsconsole.dump('android.support.v4.app.ActivityCompat', android.support.v4.app.ActivityCompat)
+
+		// let method = android.app.Activity.class.getMethod(
+		// 	"shouldShowRequestPermissionRationale",
+		
+		// 	android.app.Activity.class,
+		// 	java.lang.String.class
+		// )
+		// global.tnsconsole.dump('method', method)
+		// let bool = method.invoke(null, application.android.foregroundActivity, permission)
+		// global.tnsconsole.dump('bool', bool)
+
+		let should: boolean = android.support.v4.app.ActivityCompat.shouldShowRequestPermissionRationale(
+			application.android.foregroundActivity,
+			android.Manifest.permission[permission]
+		)
+		return should
+	}
+
+	/*=================================
+	=            UTILITIES            =
+	=================================*/
+
+	public switchToSettings(): void {
+		let intent = new android.content.Intent(android.provider.Settings['ACTION_APPLICATION_DETAILS_SETTINGS'])
+		let uri = android.net.Uri.fromParts('package', application.android.foregroundActivity.getPackageName(), null)
+		intent.setData(uri)
+		application.android.foregroundActivity.startActivity(intent)
+	}
+
+	public switchToLocationSettings(): void {
+		let intent = new android.content.Intent(android.provider.Settings['ACTION_LOCATION_SOURCE_SETTINGS'])
+		application.android.foregroundActivity.startActivity(intent)
+	}
+
 	/*================================
 	=            LOCATION            =
 	================================*/
-
-	public isLocationAvailable(): boolean {
-
-	}
-
-	public isGpsLocationAvailable(): boolean {
-		let result: boolean = this.isGpsLocationEnabled() && this.isLocationAuthorized()
-	}
-
-	public isGpsLocationEnabled(): boolean {
-		let mode: number = this.getLocationMode()
-		let result: boolean = (mode == 3 || mode == 1)
-		return result
-	}
-
-	public isLocationAuthorized(): boolean {
-
-	}
 
 	public getLocationMode(): number {
 		let mode = 0
@@ -87,8 +110,31 @@ class Permissions2 {
 		return mode
 	}
 
+	public isLocationAvailable(): boolean {
+		let result: boolean = this.isLocationEnabled() && this.isLocationAuthorized()
+		return result
+	}
+
+	public isLocationEnabled(): boolean {
+		let mode: number = this.getLocationMode()
+		let result: boolean = (mode == 3 || mode == 1)
+		return result
+	}
+
+	public isLocationAuthorized(): boolean {
+		let fineAuthed: boolean = this._hasPermission('ACCESS_FINE_LOCATION')
+		let coarseAuthed: boolean = this._hasPermission('ACCESS_COARSE_LOCATION')
+		return fineAuthed || coarseAuthed
+	}
+
 	private isLocationProviderEnabled(provider: string): boolean {
 		return android.location.LocationManager.isProviderEnabled(provider)
+	}
+
+	public getLocationAuthorizationStatus(): number {
+		let should: boolean = this._shouldShowRequestPermissionRationale('ACCESS_FINE_LOCATION')
+		global.tnsconsole.log('should', should)
+		return 0
 	}
 
 }
