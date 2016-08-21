@@ -18,7 +18,9 @@ class Permissions2 {
 		global.tnsconsole.log('this._sdkVersion', this._sdkVersion)
 
 		this.status = {
-			1: 'STATUS_NOT_REQUESTED_OR_DENIED_ALWAYS',
+			'STATUS_GRANTED': 'STATUS_GRANTED',
+			'STATUS_DENIED': 'STATUS_DENIED',
+			'STATUS_NOT_REQUESTED_OR_DENIED_ALWAYS': 'STATUS_NOT_REQUESTED_OR_DENIED_ALWAYS',
 		}
 	}
 
@@ -40,7 +42,11 @@ class Permissions2 {
 		return doesHavePermission
 	}
 
-	private _getPermissionAuthorizationStatus(permission: string): boolean {
+	private _getPermissionAuthorizationStatus(permission: string): string {
+		let granted: boolean = this._hasPermission(permission)
+		if (granted) {
+			return this.status['STATUS_GRANTED']
+		}
 
 	}
 
@@ -67,7 +73,7 @@ class Permissions2 {
 			)
 		} catch (err) {
 			global.tnsconsole.error('err', err)
-			should = false
+			should = true
 		}
 
 		return should
